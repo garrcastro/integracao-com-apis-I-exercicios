@@ -1,28 +1,67 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Botao, ContainerInputs, ContainerMusicas, InputMusica, Musica } from './styled'
+import axios from 'axios'
 
-const musicasLocal = [{
-    artist: "Artista 1",
-    id: "1",
-    name: "Musica1",
-    url: "http://spoti4.future4.com.br/1.mp3"
-},
-{
-    artist: "Artista 2",
-    id: "2",
-    name: "Musica2",
-    url: "http://spoti4.future4.com.br/2.mp3"
-},
-{
-    artist: "Artista 3",
-    id: "3",
-    name: "Musica3",
-    url: "http://spoti4.future4.com.br/3.mp3"
-}]
+
 
 export default function Musicas(props) {
-    const [musicas, setMusicas] = useState(musicasLocal)
+    const [musicas, setMusicas] = useState([])
+    const [artist, setArtist] = useState('')
+    const [name, setName] = useState('')
+    const [url, setUrl] = useState('')
 
+    const headers = {
+        headers: {
+          Authorization: "gabriel-castro-ozemela"
+        }
+    }
+    console.log(props)
+    const getPlaylistTracks = () =>{
+        axios.get(`https://us-central1-labenu-apis.cloudfunctions.net/labefy/playlists/${props.playlist.id}/tracks`, headers)
+        .then((response)=>{
+            console.log(response)
+            setMusicas(response.data.result.tracks)
+        })
+        .catch((error)=>{
+            console.log(error.response)
+        })
+    }
+
+    useEffect(()=>{
+        getPlaylistTracks()
+    },[])
+
+    const addTrackToPlaylist = (name, artist, url) =>{
+        const body = {
+            name,
+            artist,
+            url
+        }
+        axios.post(`https://us-central1-labenu-apis.cloudfunctions.net/labefy/playlists/${props.playlist.id}/tracks`,body, headers)
+        .then(()=>{
+            
+            getPlaylistTracks()
+            setArtist('')
+            setName('')
+            setUrl('')
+            alert('Música cadastrada!')
+        }).catch((error)=>{
+            console.log(error.response)
+        })
+    }
+
+    const removeTrackFromPlaylist = (musica) =>{
+        axios.delete(`https://us-central1-labenu-apis.cloudfunctions.net/labefy/playlists/${props.playlist.id}/tracks/${musica.id}`, headers)
+        .then((answer)=>{
+            alert('Música removida')
+            getPlaylistTracks()
+            console.log(answer)
+        }).catch((error)=>{
+            console.log(error.response)
+        })
+    }
+    
+    
     return (
         <ContainerMusicas>
             <h2>{props.playlist.name}</h2>
@@ -31,14 +70,14 @@ export default function Musicas(props) {
                     <Musica key={musica.id}>
                         <h3>{musica.name} - {musica.artist}</h3>
                         <audio src={musica.url} controls />
-                        <button>X</button>
+                        <button onClick={()=>removeTrackFromPlaylist(musica)}>X</button>
                     </Musica>)
             })}
             <ContainerInputs>
-                <InputMusica placeholder="artista" />
-                <InputMusica placeholder="musica" />
-                <InputMusica placeholder="url" />
-                <Botao>Adicionar musica</Botao>
+                <InputMusica placeholder="artista" value={artist} onChange={(e)=>{setArtist(e.target.value)}}/>
+                <InputMusica placeholder="musica" value={name} onChange={(e)=>{setName(e.target.value)}}/>
+                <InputMusica placeholder="url" value={url} onChange={(e)=>{setUrl(e.target.value)}}/>
+                <Botao onClick={()=>{addTrackToPlaylist(name, artist, url)}}>Adicionar musica</Botao>
             </ContainerInputs>
         </ContainerMusicas>
     )
